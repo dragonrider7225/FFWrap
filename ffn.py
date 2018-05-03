@@ -5,6 +5,8 @@ from html.parser import HTMLParser
 
 from htmldom import HTMLTag, HTMLTextNode, HTMLDOM, StyleSheet, HTMLStyleNode
 
+from style import *
+
 import urllib.request
 from urllib.request import Request, urlopen
 
@@ -178,11 +180,10 @@ class FFNParser(HTMLParser):
     def getReplacement(self, origin, url):
         self.reset()
         self.feed(origin)
-        back = "#FFFFFF"
         ret = HTMLDOM()
         ret.appendToHead(HTMLTag("title", HTMLTextNode(self.__title)))
         style = StyleSheet()
-        bodyStyle = HTMLStyleNode("body").addStyle("background-color", back)
+        bodyStyle = HTMLStyleNode("body").addStyle("background-color", BACKGROUND_COLOR)
         style.appendChild(bodyStyle)
         coversStyle = HTMLStyleNode("img", "coverSmall")
         coversStyle.addStyle("position", "relative").addStyle("left", "53px")
@@ -192,15 +193,17 @@ class FFNParser(HTMLParser):
         coverlStyle.addStyle("opacity", "0.5")
         style.appendChild(coverlStyle)
         headerStyle = HTMLStyleNode("div", "storyHeader")
-        headerStyle.addStyle("background-color", "#444444")
+        headerStyle.addStyle("background-color", HEADER_COLOR)
+        headerStyle.addStyle("min-height", "{}px".format(HEADER_HEIGHT))
+        headerStyle.addStyle("max-height", "{}px".format(HEADER_HEIGHT))
         style.appendChild(headerStyle)
         coverConStyle = HTMLStyleNode("div", "coverContainer")
-        coverConStyle.addStyle("background-color", back)
-        coverConStyle.addStyle("max-width", "180px")
-        coverConStyle.addStyle("max-height", "240px")
+        coverConStyle.addStyle("background-color", BACKGROUND_COLOR)
+        coverConStyle.addStyle("max-width", "{}px".format(COVER_WIDTH))
+        coverConStyle.addStyle("max-height", "{}px".format(COVER_HEIGHT))
         style.appendChild(coverConStyle)
         ret.appendToHead(style)
-        storyHeader = HTMLTag("div", height=300, id="storyHeader")
+        storyHeader = HTMLTag("div", id="storyHeader")
         coverContainer = HTMLTag("div", id="coverContainer")
         coverlReq = Request(self.__coverLarge, headers={"referer": url})
         coversReq = Request(self.__coverSmall, headers={"referer": url})
