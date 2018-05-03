@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
 
-from helpers import flatten
-
 class HTMLDOM:
     def __init__(self, head=None, body=None):
         if head:
