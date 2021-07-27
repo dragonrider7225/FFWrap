@@ -33,6 +33,8 @@ class FFNParser(HTMLParser):
         self.__sTitle = None
         self.__cTitle = None
         self.__author = None
+        self.__desc = None
+        self.__rating = None
 
     @staticmethod
     def fixSplitAttribute(attrs, attrName):
@@ -148,10 +150,18 @@ class FFNParser(HTMLParser):
         if self.__coverSmall != None and tag.lower() == "b":
             self.__sTitle = 1
             return
-        if "href" in attrs.keys() and attrs["href"].lower().startswith("//www.fanfiction.net/u/"):
-            authorURL = attrs["href"]
-            self.__author = [authorURL]
+        if "href" in attrs.keys() and attrs["href"][20:23].lower() == "/u/":
+            self.__author = [attrs["href"]]
             return
+        if self.__author != None and len(self.__author) == 2:
+            if self.__desc == None and tag.lower() == "div":
+                if "class" in attrs.keys() and "xcontrast_txt" in attrs["class"].split():
+                    self.__desc = 1
+                    return
+        if self.__desc != None and tag.lower() == "a":
+            if self.__rating == None:
+                self.__rating = 1
+                return
 
     def handle_endtag(self, tag):
         pass
@@ -194,6 +204,12 @@ class FFNParser(HTMLParser):
         if self.__author != None and len(self.__author) == 1:
             self.__author.append(data)
             return
+        if self.__desc == 1:
+            self.__desc = bytes(data, "utf-8").decode("unicode_escape")
+            return
+        if self.__rating == 1:
+            self.__rating = data.split()[-1]
+            return
 
     def getReplacement(self, origin, url):
         self.reset()
@@ -204,30 +220,34 @@ class FFNParser(HTMLParser):
         style = StyleSheet()
         bodyStyle = HTMLStyleNode("body").addStyle("background-color", BACKGROUND_COLOR)
         style.appendChild(bodyStyle)
-        coversStyle = HTMLStyleNode("img", "coverSmall")
-        coversStyle.addStyle("position", "relative").addStyle("left", "53px")
-        coversStyle.addStyle("top", "-170px")
-        style.appendChild(coversStyle)
         coverlStyle = HTMLStyleNode("img", "coverLarge")
         coverlStyle.addStyle("opacity", "0.5")
         coverlStyle.addStyle("border-radius", COVER_FRAME_RADIUS)
         style.appendChild(coverlStyle)
+        headerBoxStyle = HTMLStyleNode("div", "headerContainer")
+        headerBoxStyle.addStyle("color", HEADER_TEXT_COLOR)
+        headerBoxStyle.addStyle("background-color", HEADER_COLOR)
+        headerBoxStyle.addStyle("padding", "{} {}".format(HEADER_BOX_VPADDING, HEADER_BOX_HPADDING))
+        style.appendChild(headerBoxStyle)
         headerStyle = HTMLStyleNode("div", "header")
-        headerStyle.addStyle("background-color", HEADER_COLOR)
         headerStyle.addStyle("display", HEADER_DISPLAY)
         headerStyle.addStyle("min-height", HEADER_HEIGHT)
         headerStyle.addStyle("max-height", HEADER_HEIGHT)
-        headerStyle.addStyle("margin-top", "0px")
-        headerStyle.addStyle("padding-top", HEADER_PADDING_TOP)
-        headerStyle.addStyle("padding-bottom", HEADER_PADDING_BOTTOM)
-        headerStyle.addStyle("padding-left", HEADER_PADDING_LEFT)
+        headerStyle.addStyle("max-width", HEADER_WIDTH)
+        headerStyle.addStyle("margin", HEADER_MARGIN)
         style.appendChild(headerStyle)
         coverFrameStyle = HTMLStyleNode("div", "coverFrame")
+        coverFrameStyle.addStyle("position", COVER_FRAME_POSITION)
         coverFrameStyle.addStyle("background", BACKGROUND_COLOR)
         coverFrameStyle.addStyle("border-radius", COVER_FRAME_RADIUS)
         coverFrameStyle.addStyle("max-width", COVER_WIDTH)
         coverFrameStyle.addStyle("max-height", COVER_HEIGHT)
         style.appendChild(coverFrameStyle)
+        coversStyle = HTMLStyleNode("img", "coverSmall")
+        coversStyle.addStyle("position", COVER_S_POSITION)
+        coversStyle.addStyle("left", COVER_S_LEFT)
+        coversStyle.addStyle("top", COVER_S_TOP)
+        style.appendChild(coversStyle)
         infoBoxStyle = HTMLStyleNode("div", "infobox")
         infoBoxStyle.addStyle("padding-left", INFOBOX_PADDING_LEFT)
         style.appendChild(infoBoxStyle)
@@ -235,10 +255,18 @@ class FFNParser(HTMLParser):
         titleBoxStyle.addStyle("display", TITLEBOX_DISPLAY)
         titleBoxStyle.addStyle("padding-right", TITLEBOX_PADDING_RIGHT)
         style.appendChild(titleBoxStyle)
+        titleStyle = HTMLStyleNode("h1", "title")
+        titleStyle.addStyle("margin-bottom", TITLE_MARGIN_BOTTOM)
+        titleStyle.addStyle("margin-top", TITLE_MARGIN_TOP)
+        style.appendChild(titleStyle)
         authorBoxStyle = HTMLStyleNode("div", "authorbox")
         authorBoxStyle.addStyle("display", AUTHORBOX_DISPLAY)
         style.appendChild(authorBoxStyle)
+        authorStyle = HTMLStyleNode("h2", "author")
+        authorStyle.addStyle("margin-top", AUTHOR_MARGIN_TOP)
+        style.appendChild(authorStyle)
         ret.appendToHead(style)
+        headerContainer = HTMLTag("div", id="headerContainer")
         storyHeader = HTMLTag("div", id="header")
         coverFrame = HTMLTag("div", id="coverFrame")
         coverlReq = Request(self.__coverLarge, headers={"referer": url})
@@ -262,8 +290,12 @@ class FFNParser(HTMLParser):
         authorHeading.appendChild(authorLink)
         authorBox.appendChild(authorHeading)
         infoBox.appendChild(authorBox)
+        descBox = HTMLTag("div", id="descbox")
+        descBox.appendChild(HTMLTextNode(self.__desc))
+        infoBox.appendChild(descBox)
         storyHeader.appendChild(infoBox)
-        ret.appendToBody(storyHeader)
+        headerContainer.appendChild(storyHeader)
+        ret.appendToBody(headerContainer)
         return ret
 
 def testFFN():
